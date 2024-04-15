@@ -1,0 +1,33 @@
+-- Gross Profit (including returns)
+SELECT
+  EXTRACT(YEAR FROM t.date) AS year,
+  SUM(
+    t.transaction_revenue
+    - (ti.item_quantity * pc.cost_of_item)
+    - IFNULL(
+        (SELECT SUM(pr.return_quantity * pc.cost_of_item)
+         FROM `warehouse.product_returns` pr
+         WHERE pr.transaction_id = t.transaction_id
+           AND pr.item_id = ti.item_id
+           AND pr.return_status = 'Refund'), 
+        0)
+  ) AS gross_profit
+FROM `warehouse.transactions` t
+JOIN `warehouse.transactionsanditems` ti
+  ON t.transaction_id = ti.transaction_id
+JOIN `warehouse.product_costs` pc
+  ON ti.item_id = pc.item_id
+WHERE EXTRACT(YEAR FROM t.date) IN (2020, 2021)
+GROUP BY year;
+
+-- Gross Profit (excluding returns)
+SELECT
+  EXTRACT(YEAR FROM t.date) AS year,
+  SUM(t.transaction_revenue - (ti.item_quantity * pc.cost_of_item)) AS gross_profit
+FROM `warehouse.transactions` t
+JOIN `warehouse.transactionsanditems` ti
+  ON t.transaction_id = ti.transaction_id
+JOIN `warehouse.product_costs` pc
+  ON ti.item_id = pc.item_id
+WHERE EXTRACT(YEAR FROM t.date) IN (2020, 2021)
+GROUP BY year
